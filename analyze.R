@@ -35,6 +35,10 @@ E$response2 <- as.numeric(E$response2)
 E$target1 <- as.numeric(E$target1) #left if canonical, generally first that would be read according to implied reading order
 E$target2<- as.numeric(E$target2) #right if canonical, generally first that would be read according to implied reading order
 
+
+table(E2$dominant,E2$streamName) #check it worked
+
+
 #SANITY CHECK LATENCY before gathering
 #Does response1 refer to the serial position in the stream, or is it a code for a letter,
 #with serial position recoverable from letterOrder
@@ -69,6 +73,8 @@ head(gathered)
 Elong<-gathered
 
 Elong$SPE<- Elong$respSP - Elong$targetSP
+Elong$correct <- Elong$SPE==0
+Elong$approxCorr <- abs(Elong$SPE)<3
 
 #sanity check
 g=ggplot(Elong,   aes(x=SPE))  
@@ -77,31 +83,70 @@ g<-g+geom_histogram()
 g
 #looks good
 
+# Also create straight up left and right, top bottom, because 1 and 2 correpsond to reading direction rather than mapping direclty on to positions
+# "In the ANOVA, stream was coded as dominant (top, left) or non-dominant (bottom, right)."
+Elong$location<-Elong$condName
+#Based on what Lizzy said, target=1 means top in downwards but bottom in upwards.
+filter(Elong,condName=="Inverted", target==1)$location  <- "right" 
+Elong<- Elong %>% 
+  mutate(location = replace(location, condName=="Inverted" & target==1, "right"),
+         location = replace(location, condName=="Inverted" & target==2, "left"),
+         location = replace(location, condName=="Canonical"& target==1, "left"),
+         location = replace(location, condName=="Canonical"& target==2, "right"),
+         location = replace(location, condName=="Backwards"& target==1, "right"),
+         location = replace(location, condName=="Backwards"& target==2, "left"),
+         location = replace(location, condName=="Downwards"& target==1, "top"),
+         location = replace(location, condName=="Downwards"& target==2, "bottom"),
+         location = replace(location, condName=="Upwards"  & target==1, "bottom"),
+         location = replace(location, condName=="Upwards"  & target==2, "top"))
+         
+
+table(Elong$location,Elong$condName) #check it worked  CHECK
+
+E2$dominant<-FALSE
+E2$dominant[E2$streamName=="Left"] <- TRUE
+E2$dominant[E2$streamName=="Top"] <- TRUE
+
+
 #Calculate latency as function of condition
 require(dplyr)
 
 #First analyse participants individually, then collapse across participants
 s <- Elong %>%
-  group_by(condName,target, participantID) %>%
-  summarise(SPEmsec=mean(SPE*1000/itemRate))  #by participant
+  group_by(exp, condName,target, participantID) %>%
+  summarise(corr=mean(correct), SPEmsec=mean(SPE*1000/itemRate))  #by participant
 t <- s %>%  #collapse across participants
-  group_by(condName,target) %>%
-  summarise(msec=mean(SPEmsec),SE=sd(SPEmsec)/sqrt(n()))
+  group_by(exp, condName,target) %>%
+  summarise(corr=mean(corr),msec=mean(SPEmsec),SPEmsecSE=sd(SPEmsec)/sqrt(n()))
 t
 
 #Do statistics on it
 require(ez)
 
 #factors = condName, target
-latencyANOVA <- ezANOVA(data=Eg, dv=SPE, within=.(condName,target), wid=participantID)
-print(latencyANOVA)
-cat("F=", latencyANOVA$F, " ps=", latencyANOVA$ANOVA$p, "\n", sep=",")
-#These ANOVA details now reported on p.16 of revised manuscript
+plots = list()
+for (expNum in sort(unique(Elong$exp))){
+  thisExp <- filter(Elong, exp==expNum)
+  latencyANOVA <- ezANOVA(data=thisExp, dv=SPE, within=.(condName,target), wid=participantID)
+  print(latencyANOVA)
+  cat("exp=",expNum,"F=", latencyANOVA$F, " ps=", latencyANOVA$ANOVA$p, "\n", sep=",")
+  #These ANOVA details now reported on p.16 of revised manuscript
+  
+  #Plot the interaction.
+  condName_by_target_plot = ezPlot(
+    data = thisExp, dv = .(SPE)  , wid = .(participantID), within = .(condName,target)
+    , x = .(target)
+    , split = .(condName),
+    print_code = TRUE
+  )
+  plots[[length(plots)+1]] <- condName_by_target_plot
+  
+}
 
+print(plots[1])
 ########
 #Examine effect of response order
 
-Eg$correct <- Eg$SPE==0
 
 toSumm<- Eg[,c("participantID","condName","target","rightFirst","SPE","correct")]
 toSumm$SPEmsec <- toSumm$SPE*SOA
@@ -257,25 +302,7 @@ t
 
 #Do statistics on it
 
-# "In the ANOVA, stream was coded as dominant (top, left) or non-dominant (bottom, right)."
-E2$streamName<-E2$condName
-#Based on what Lizzy said in note at top, target=1 means top in downwards but bottom in upwards.
-E2$streamName[E2$condName=="Canonical" & E2$target==1 ] <- "Left"
-E2$streamName[E2$condName=="Canonical" & E2$target==2 ] <- "Right"
-E2$streamName[E2$condName=="Inverted" & E2$target==1 ] <- "Right"
-E2$streamName[E2$condName=="Inverted" & E2$target==2 ] <- "Left"
-E2$streamName[E2$condName=="Downwards" & E2$target==1 ] <- "Top"
-E2$streamName[E2$condName=="Downwards" & E2$target==2 ] <- "Bottom"
-E2$streamName[E2$condName=="Upwards" & E2$target==1 ] <- "Bottom"
-E2$streamName[E2$condName=="Upwards" & E2$target==2 ] <- "Top"
 
-table(E2$streamName,E2$condName) #check it worked
-
-E2$dominant<-FALSE
-E2$dominant[E2$streamName=="Left"] <- TRUE
-E2$dominant[E2$streamName=="Top"] <- TRUE
-
-table(E2$dominant,E2$streamName) #check it worked
 
 # factors = condName, target
 latencyANOVA_E2 <- ezANOVA(data=E2, dv=SPE, within=.(condName,dominant), wid=participantID)
