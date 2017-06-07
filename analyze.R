@@ -8,11 +8,21 @@
   source('loadRawData/E2_BackwardsLtrsLoadRawData.R')
 #}
 
+  
 #Harmonise E1 and E2 so can combine into single data frame
-E2$expDegrees <- NULL
 E1$condName<- "Canonical"
 E1$condName[E1$condition == "2"] <- "Backwards"
+E1$exp<-1
+  
+E2$exp<-2
+E2$expDegrees <- NULL
 
+E<- rbind(E2,E1)
+  
+#get rid of some cluttering useless variables
+E$endTime<-NULL #Don't know what this is
+E$letterSeparation<-NULL
+E$letterEccentricity<-NULL
 
 #Don't forget that E1 and E2 already excludes participants that were excluded at mixture modeling stage due to their
 #efficacy being indistinguishable from zero.
@@ -20,17 +30,10 @@ E1$condName[E1$condition == "2"] <- "Backwards"
 # Lizzy: Actually in all the conditions for the code the  ‘left stream’ or stream 1 is always the one that you would read first, and right stream or stream 2 is the one that you would read second.
 #      Its because the way it is coded is that the streams really are just rotated visually by 0 degrees (i.e. left right), 180 degrees (i.e. ʇɥƃᴉɹ ʇɟǝl ), 90 degrees and 270 degrees.
 
-#get rid of some cluttering useless variables
-E$endTime<-NULL #Don't know what this is
-E$letterSeparation<-NULL
-E$letterEccentricity<-NULL
-E$condName<-E$condition
-
-
 E$response1 <- as.numeric(E$response1)
 E$response2 <- as.numeric(E$response2)
-E$target1 <- as.numeric(E$target1) #left?
-E$target2<- as.numeric(E$target2) #right?
+E$target1 <- as.numeric(E$target1) #left if canonical, generally first that would be read according to implied reading order
+E$target2<- as.numeric(E$target2) #right if canonical, generally first that would be read according to implied reading order
 
 #SANITY CHECK LATENCY before gathering
 #Does response1 refer to the serial position in the stream, or is it a code for a letter,
@@ -38,7 +41,7 @@ E$target2<- as.numeric(E$target2) #right?
 require(ggplot2)
 #sanity check
 g=ggplot(E,   aes(x=response1-target1))  
-g<-g+facet_grid(condName~.)
+g<-g+facet_grid(condName~exp)
 g<-g+geom_histogram()
 g
 #Looks good
@@ -63,26 +66,24 @@ gathered$response1<-NULL
 gathered$response2<-NULL
 
 head(gathered)
-Eg<-gathered
+Elong<-gathered
 
-Eg$SPE<- Eg$respSP - Eg$targetSP
+Elong$SPE<- Elong$respSP - Elong$targetSP
 
-require(ggplot2)
 #sanity check
-g=ggplot(Eg,   aes(x=SPE))  
+g=ggplot(Elong,   aes(x=SPE))  
 g<-g+facet_grid(condName~target)
 g<-g+geom_histogram()
 g
 #looks good
 
-SOA = 83 #ms
 #Calculate latency as function of condition
 require(dplyr)
 
 #First analyse participants individually, then collapse across participants
-s <- Eg %>%
+s <- Elong %>%
   group_by(condName,target, participantID) %>%
-  summarise(SPEmsec=mean(SPE*SOA))  #by participant
+  summarise(SPEmsec=mean(SPE*1000/itemRate))  #by participant
 t <- s %>%  #collapse across participants
   group_by(condName,target) %>%
   summarise(msec=mean(SPEmsec),SE=sd(SPEmsec)/sqrt(n()))
