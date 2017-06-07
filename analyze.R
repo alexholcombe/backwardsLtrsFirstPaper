@@ -101,7 +101,7 @@ Elong<- Elong %>%
          location = replace(location, condName=="Upwards"  & target==2, "top"))
          
 
-table(Elong$location,Elong$condName) #check it worked  CHECK
+table(Elong$location,Elong$condName,Elong$target) #check it worked. Yes
 
 E2$dominant<-FALSE
 E2$dominant[E2$streamName=="Left"] <- TRUE
