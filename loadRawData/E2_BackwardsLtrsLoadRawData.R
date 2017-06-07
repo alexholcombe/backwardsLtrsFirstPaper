@@ -90,8 +90,5 @@ E2$condName[E2$condName == "4"] <- "Upwards"
 E2$rightFirst <- E2$RT1 > E2$RT2
 
 #save dataframe as csv file
-saveSubdir<-"analysisInR_postLizzy/loadRawData/"
-directorytoSaveData<- paste0("/Users/",userNameOnMachineOnWayToGoogleDrive,GoogleDrivePath,
-                             saveSubdir)
-                            
-write.csv(E2,paste0(directorytoSaveData, "E2_BwdsLtrs_Rotate_RawData.csv"),row.names=FALSE)
+saveDataFramesPath<-"loadRawData/"
+write.csv(E2,paste0(saveDataFramesPath, "E2_BwdsLtrs_Rotate_RawData.csv"),row.names=FALSE)

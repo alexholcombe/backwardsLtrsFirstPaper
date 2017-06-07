@@ -86,6 +86,7 @@ for (fileName in list.files(path, pattern="*.mat")) #Loop through and read in ea
 E1$rightFirst <- E1$RT1 > E1$RT2
 
 #save dataframe as csv file
-saveDataFramesPath<- paste0("/Users/",userNameOnMachineOnWayToGoogleDrive,GoogleDrivePath,
-                            "analysisInR_postLizzy/loadRawData/")
+#saveDataFramesPath<- paste0("/Users/",userNameOnMachineOnWayToGoogleDrive,GoogleDrivePath,
+#                            "analysisInR_postLizzy/loadRawData/")
+saveDataFramesPath<-"loadRawData/"
 write.csv(E1,paste0(saveDataFramesPath, "E1_BwdsLtrs_MirrRev_RawData.csv"),row.names=FALSE)

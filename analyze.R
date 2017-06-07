@@ -1,23 +1,31 @@
 
 #current directory should be analysisInR_postLizzy
 #E1 is data.frame created by below file
-if (!exists('E1')) {
+#if (!exists('E1')) {
   source('loadRawData/E1_BackwardsLtrsLoadRawData.R')
-}
-E<-E1 #don't screw up raw data, as running successively could screw up raw data
+#}
+#if (!exists('E2')) {
+  source('loadRawData/E2_BackwardsLtrsLoadRawData.R')
+#}
 
-#Don't forget that this already excludes 6 participants that were excluded at mixture modeling stage due to their
+#Harmonise E1 and E2 so can combine into single data frame
+E2$expDegrees <- NULL
+E1$condName<- "Canonical"
+E1$condName[E1$condition == "2"] <- "Backwards"
+
+
+#Don't forget that E1 and E2 already excludes participants that were excluded at mixture modeling stage due to their
 #efficacy being indistinguishable from zero.
 
 # Lizzy: Actually in all the conditions for the code the  ‘left stream’ or stream 1 is always the one that you would read first, and right stream or stream 2 is the one that you would read second.
 #      Its because the way it is coded is that the streams really are just rotated visually by 0 degrees (i.e. left right), 180 degrees (i.e. ʇɥƃᴉɹ ʇɟǝl ), 90 degrees and 270 degrees.
 
 #get rid of some cluttering useless variables
+E$endTime<-NULL #Don't know what this is
 E$letterSeparation<-NULL
 E$letterEccentricity<-NULL
 E$condName<-E$condition
-E$condName[E$condName == "1"] <- "Canonical"
-E$condName[E$condName == "2"] <- "Backwards"
+
 
 E$response1 <- as.numeric(E$response1)
 E$response2 <- as.numeric(E$response2)
