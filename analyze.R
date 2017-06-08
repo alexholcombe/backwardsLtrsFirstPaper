@@ -38,7 +38,6 @@ E$target2<- as.numeric(E$target2) #right if canonical, generally first that woul
 
 table(E2$dominant,E2$streamName) #check it worked
 
-
 #SANITY CHECK LATENCY before gathering
 #Does response1 refer to the serial position in the stream, or is it a code for a letter,
 #with serial position recoverable from letterOrder
@@ -69,6 +68,14 @@ gathered$respSP[ gathered$target == 2  ] <- gathered$response2[ gathered$target 
 gathered$response1<-NULL
 gathered$response2<-NULL
 
+#target1, target2 still in wide format. Fx that.
+gathered$respSP <- gathered$response1
+#replace those that are target2 with response2
+gathered$respSP[ gathered$target == 2  ] <- gathered$response2[ gathered$target == 2 ]
+#Fixed, now can delete response1 and response2
+gathered$response1<-NULL
+gathered$response2<-NULL
+
 head(gathered)
 Elong<-gathered
 
@@ -83,11 +90,11 @@ g<-g+geom_histogram()
 g
 #looks good
 
+require(dplyr)
 # Also create straight up left and right, top bottom, because 1 and 2 correpsond to reading direction rather than mapping direclty on to positions
-# "In the ANOVA, stream was coded as dominant (top, left) or non-dominant (bottom, right)."
 Elong$location<-Elong$condName
 #Based on what Lizzy said, target=1 means top in downwards but bottom in upwards.
-filter(Elong,condName=="Inverted", target==1)$location  <- "right" 
+#filter(Elong,condName=="Inverted", target==1)$location  <- "right" 
 Elong<- Elong %>% 
   mutate(location = replace(location, condName=="Inverted" & target==1, "right"),
          location = replace(location, condName=="Inverted" & target==2, "left"),
@@ -100,65 +107,89 @@ Elong<- Elong %>%
          location = replace(location, condName=="Upwards"  & target==1, "bottom"),
          location = replace(location, condName=="Upwards"  & target==2, "top"))
          
+table(Elong$location,Elong$condName,Elong$target) #check it worked. 
 
-table(Elong$location,Elong$condName,Elong$target) #check it worked. Yes
-
-E2$dominant<-FALSE
-E2$dominant[E2$streamName=="Left"] <- TRUE
-E2$dominant[E2$streamName=="Top"] <- TRUE
+# "In the ANOVA, stream was coded as dominant (top, left) or non-dominant (bottom, right)."
+Elong$dominant<-FALSE
+Elong$dominant[Elong$location=="left" | Elong$location=="top"] <- TRUE
 
 
 #Calculate latency as function of condition
-require(dplyr)
 
 #First analyse participants individually, then collapse across participants
-s <- Elong %>%
+s <- Elong %>% 
   group_by(exp, condName,target, participantID) %>%
   summarise(corr=mean(correct), SPEmsec=mean(SPE*1000/itemRate))  #by participant
 t <- s %>%  #collapse across participants
-  group_by(exp, condName,target) %>%
-  summarise(corr=mean(corr),msec=mean(SPEmsec),SPEmsecSE=sd(SPEmsec)/sqrt(n()))
-t
+  group_by(exp, condName,target) %>% summarise_each(funs(mean,se=sd(.)/sqrt(n()))) %>%
+      select(-participantID_mean, -participantID_se)
+t #exp1,canonical left SPEmsec=31+/-7.5, right 24.8+/-15. exp1 backwards left 30.0+/-9.3 right 0.8 13.4
+ #exp2, canonical left SPEms=41.3+/-9.6, right 18.9+/-17.5; inverted left 16.2+/18.5 right 11.1+/-14.6
+ #exp2 downwards top SPEms=20.9 16.7, btm 17.9 22.4, upwards top 26.3 14.2 btm 52.5 17.4
 
 #Do statistics on it
 require(ez)
-
 #factors = condName, target
 plots = list()
-for (expNum in sort(unique(Elong$exp))){
-  thisExp <- filter(Elong, exp==expNum)
-  latencyANOVA <- ezANOVA(data=thisExp, dv=SPE, within=.(condName,target), wid=participantID)
-  print(latencyANOVA)
-  cat("exp=",expNum,"F=", latencyANOVA$F, " ps=", latencyANOVA$ANOVA$p, "\n", sep=",")
-  #These ANOVA details now reported on p.16 of revised manuscript
-  
-  #Plot the interaction.
-  condName_by_target_plot = ezPlot(
-    data = thisExp, dv = .(SPE)  , wid = .(participantID), within = .(condName,target)
-    , x = .(target)
-    , split = .(condName),
-    print_code = TRUE
-  )
-  plots[[length(plots)+1]] <- condName_by_target_plot
-  
-}
+expNum<-1
+thisExp <- filter(Elong, exp==expNum)
+latencyANOVA <- ezANOVA(data=thisExp, dv=SPE, within=.(location,condName), wid=participantID)
+print(latencyANOVA)
+cat("exp=",expNum,"F=", latencyANOVA$ANOVAF, " ps=", latencyANOVA$ANOVA$p, "\n", sep=",")
+#These ANOVA details now reported on p.16 of revised manuscript
 
+#Plot the interaction.
+condName_by_target_plot = ezPlot(
+  data = thisExp, dv = .(SPE)  , wid = .(participantID), within = .(location,condName)
+  , x = .(location)
+  , split = .(condName),
+  print_code = FALSE
+)
+plots[[length(plots)+1]] <- condName_by_target_plot
+
+#To get standard errors on means to report in manuscript, used dplyr because
+#  ezPlot uses Tukey's LSD or something
+  
 print(plots[1])
 ########
-#Examine effect of response order
+#Examine effect of response order RESPONSE ORDER
 
+Elong$queriedFirst  <- TRUE
+ElongQ<- Elong %>% 
+  mutate(queriedFirst = replace(queriedFirst, condName=="Canonical", target==rightFirst+1), #
+         queriedFirst = replace(queriedFirst, condName=="Inverted",  target==!rightFirst+1),
+         queriedFirst = replace(queriedFirst, condName=="Backwards", target==!rightFirst+1),
+         queriedFirst = replace(queriedFirst, condName=="Downwards", target==rightFirst+1),
+         queriedFirst = replace(queriedFirst, condName=="Upwards",   target==!rightFirst+1))
 
-toSumm<- Eg[,c("participantID","condName","target","rightFirst","SPE","correct")]
-toSumm$SPEmsec <- toSumm$SPE*SOA
+table(Elong$condName, Elong$rightFirst, Elong$expNum)
+
+toSumm<- Elong[,c("expNum","participantID","condName","target","rightFirst","SPE","correct")]
+toSumm$SPEmsec <- toSumm$SPE*(1000/Elong$itemRate)
 
 #There is a zero-order prediction that performance is better for side queried first. Forget second one more often because reported later.
+                            #rightFirst+1 == target  means target is 2 and rightFirst, meaning that it works for canonical condition
 toSumm$queriedFirst <- as.numeric(toSumm$rightFirst)+1 == toSumm$target
-#Assume (checking with Lizzy to be sure) that target1 is actually right target in backwards condition. 
+# Target1 is actually right target in backwards condition. (checking with Lizzy to be sure)
+# So, need to flip backwards condition.
+toSumm$queriedFirst[ toSumm$condName=="Backwards"] <- ! toSumm$queriedFirst[ toSumm$condName=="Backwards"]
+#Experiment 2
+toSumm$queriedFirst <- as.numeric(toSumm$rightFirst)+1 == toSumm$target
+# Target1 is actually right target in backwards condition. (checking with Lizzy to be sure)
 # So, need to flip backwards condition.
 toSumm$queriedFirst[ toSumm$condName=="Backwards"] <- ! toSumm$queriedFirst[ toSumm$condName=="Backwards"]
 
-vv <- toSumm %>% group_by(queriedFirst) %>% summarise_each(funs(mean))
-vv
+
+
+
+
+
+#Spatial memory coding prediction. People encode the two targets spatially and prefer to read out memory left to right
+xx <- toSumm %>% group_by(expNum,queriedFirst,participantID) %>%  summarise_each(funs(mean)) %>% 
+  select(participantID, expNum, queriedFirst, SPEmsec, correct)
+yy<- xx %>% group_by(expNum,queriedFirst) %>% summarise_each(funs(mean,se=sd(.)/sqrt(n()))) 
+yy
+
 
 #Spatial memory coding prediction. People encode the two targets spatially and prefer to read out memory left to right
 xx <- toSumm %>% group_by(rightFirst,participantID) %>%  summarise_each(funs(mean)) %>% 
