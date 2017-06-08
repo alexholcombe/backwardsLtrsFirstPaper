@@ -87,7 +87,7 @@ E2$condName[E2$condName == "4"] <- "Upwards"
 #PTGoodbourn: I think in some versions of the code there was an explicit response order variable, but here you can probably get it from:
 #  firstResponse = ( allRTs(:,1) > allRTs(:,2) ) + 1;
 #  % 1 = left first, 2 = right first
-E2$rightFirst <- E2$RT1 > E2$RT2
+E2$oneQueriedFirst <- E2$RT1 > E2$RT2 #Because sometimes 1 is left
 
 #save dataframe as csv file
 saveDataFramesPath<-"loadRawData/"

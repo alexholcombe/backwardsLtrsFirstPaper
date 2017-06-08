@@ -82,8 +82,7 @@ for (fileName in list.files(path, pattern="*.mat")) #Loop through and read in ea
 #What variable tells us the response order?
 #PTGoodbourn: I think in some versions of the code there was an explicit response order variable, but here you can probably get it from:
 #  firstResponse = ( allRTs(:,1) > allRTs(:,2) ) + 1;
-#  % 1 = left first, 2 = right first
-E1$rightFirst <- E1$RT1 > E1$RT2
+E1$oneQueriedFirst <- E1$RT1 > E1$RT2
 
 #save dataframe as csv file
 #saveDataFramesPath<- paste0("/Users/",userNameOnMachineOnWayToGoogleDrive,GoogleDrivePath,

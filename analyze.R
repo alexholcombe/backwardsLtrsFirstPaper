@@ -35,9 +35,6 @@ E$response2 <- as.numeric(E$response2)
 E$target1 <- as.numeric(E$target1) #left if canonical, generally first that would be read according to implied reading order
 E$target2<- as.numeric(E$target2) #right if canonical, generally first that would be read according to implied reading order
 
-
-table(E2$dominant,E2$streamName) #check it worked
-
 #SANITY CHECK LATENCY before gathering
 #Does response1 refer to the serial position in the stream, or is it a code for a letter,
 #with serial position recoverable from letterOrder
@@ -61,14 +58,6 @@ gathered$target[gathered$target=="target1"] <- 1
 gathered$target[gathered$target=="target2"] <- 2
 
 #response1, response2 still in wide format. Fix that
-gathered$respSP <- gathered$response1
-#replace those that are target2 with response2
-gathered$respSP[ gathered$target == 2  ] <- gathered$response2[ gathered$target == 2 ]
-#Fixed, now can delete response1 and response2
-gathered$response1<-NULL
-gathered$response2<-NULL
-
-#target1, target2 still in wide format. Fx that.
 gathered$respSP <- gathered$response1
 #replace those that are target2 with response2
 gathered$respSP[ gathered$target == 2  ] <- gathered$response2[ gathered$target == 2 ]
@@ -113,7 +102,6 @@ table(Elong$location,Elong$condName,Elong$target) #check it worked.
 Elong$dominant<-FALSE
 Elong$dominant[Elong$location=="left" | Elong$location=="top"] <- TRUE
 
-
 #Calculate latency as function of condition
 
 #First analyse participants individually, then collapse across participants
@@ -149,22 +137,29 @@ plots[[length(plots)+1]] <- condName_by_target_plot
 
 #To get standard errors on means to report in manuscript, used dplyr because
 #  ezPlot uses Tukey's LSD or something
-  
 print(plots[1])
-########
+
+####################
 #Examine effect of response order RESPONSE ORDER
 
-Elong$queriedFirst  <- TRUE
-ElongQ<- Elong %>% 
-  mutate(queriedFirst = replace(queriedFirst, condName=="Canonical", target==rightFirst+1), #
-         queriedFirst = replace(queriedFirst, condName=="Inverted",  target==!rightFirst+1),
-         queriedFirst = replace(queriedFirst, condName=="Backwards", target==!rightFirst+1),
-         queriedFirst = replace(queriedFirst, condName=="Downwards", target==rightFirst+1),
-         queriedFirst = replace(queriedFirst, condName=="Upwards",   target==!rightFirst+1))
 
-table(Elong$condName, Elong$rightFirst, Elong$expNum)
+Elong$thisQueriedFirst  <- TRUE
 
-toSumm<- Elong[,c("expNum","participantID","condName","target","rightFirst","SPE","correct")]
+Elong<- Elong %>% 
+  mutate(thisQueriedFirst = replace(thisQueriedFirst, condName=="Canonical"  &  target==(oneQueriedFirst+1), TRUE),
+         thisQueriedFirst = replace(thisQueriedFirst, condName=="Canonical"  &  target!=(oneQueriedFirst+1), FALSE),
+         thisQueriedFirst = replace(thisQueriedFirst, condName=="Backwards"  &  target==(oneQueriedFirst+1), FALSE),
+         thisQueriedFirst = replace(thisQueriedFirst, condName=="Backwards"  &  target!=(oneQueriedFirst+1), TRUE),
+         thisQueriedFirst = replace(thisQueriedFirst, condName=="Upwards"  &  target==(oneQueriedFirst+1), FALSE),
+         thisQueriedFirst = replace(thisQueriedFirst, condName=="Upwards"  &  target!=(oneQueriedFirst+1), TRUE),
+         thisQueriedFirst = replace(thisQueriedFirst, condName=="Inverted"  &  target==(oneQueriedFirst+1), FALSE),
+         thisQueriedFirst = replace(thisQueriedFirst, condName=="Inverted"  &  target!==(oneQueriedFirst+1), TRUE),
+         thisQueriedFirst = replace(thisQueriedFirst, condName=="Downwards"  &  target==(oneQueriedFirst+1), TRUE),
+         thisQueriedFirst = replace(thisQueriedFirst, condName=="Downwards"  &  target!=(oneQueriedFirst+1), FALSE))
+
+table(Elong$condName, Elong$thisQueriedFirst, Elong$exp)
+
+toSumm<- Elong[,c("exp","participantID","condName","target","thisQueriedFirst","SPE","correct")]
 toSumm$SPEmsec <- toSumm$SPE*(1000/Elong$itemRate)
 
 #There is a zero-order prediction that performance is better for side queried first. Forget second one more often because reported later.
