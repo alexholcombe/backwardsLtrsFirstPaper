@@ -7,7 +7,7 @@
 #if (!exists('E2')) {
   source('loadRawData/E2_BackwardsLtrsLoadRawData.R')
 #}
-
+#  rm(list=ls())
   
 #Harmonise E1 and E2 so can combine into single data frame
 E1$condName<- "Canonical"
@@ -71,6 +71,8 @@ Elong<-gathered
 Elong$SPE<- Elong$respSP - Elong$targetSP
 Elong$correct <- Elong$SPE==0
 Elong$approxCorr <- abs(Elong$SPE)<3
+
+Elong$SPEother<-
 
 #sanity check
 g=ggplot(Elong,   aes(x=SPE))  
@@ -206,68 +208,12 @@ thisQueriedFirst_by_target_plot = ezPlot(
 )
 print(thisQueriedFirst_by_target_plot) #Not much going on
 
-
 #Do a t-test
-xx
 #Need to put back in wide format based on rightFirst participant_ID combination so
 #  that have the two vectors as columns
-spreaded <- xx %>% select(-SPEmsec) %>% spread(rightFirst, correct) 
-spreaded
-t.test(spreaded$`FALSE`, spreaded$`TRUE`, alternative = "two.sided", var.equal = TRUE)  #perform the Student's t-test
-
-#There is also a prediction of higher performance if order of report aligns with letter prioritised,
-# even when first one queried is not the one reported. That is, in the canonical condition
-# performance should be better for both targets if left one is queried first.
-# And less so for the backwards condition.
-toSumm$priorityAligned <- !toSumm$rightFirst & toSumm$condName=="Canonical"
-#For backwards columns, good if rightFirst
-toSumm$priorityAligned[toSumm$condName=="Backwards"] <- toSumm$rightFirst[toSumm$condName=="Backwards"]
-
-table(toSumm$priorityAligned,toSumm$rightFirst,toSumm$condName, dnn=c("spatial","rightFirst","condName"))
-ww <- toSumm %>% group_by(priorityAligned) %>%  summarise_each(funs(mean))
-ww #2% correct difference in the wrong direction.
-
-#Examine the canonical condition
-zz <- toSumm %>% group_by(priorityAligned,condName) %>%  summarise_each(funs(mean))
-zz #2% difference in the wrong direction
-
-#Code the variable indicating what predicted higher performance if order of report aligns with letter prioritised,
-#  left letter if canonical and right letter if backwards
-toSumm$betterIfOrderMatters <- toSumm$target==1 & toSumm$rightFirst==FALSE
-toSumm$betterIfOrderMatters[toSumm$target==2 & toSumm$rightFirst==TRUE ] <- TRUE
-#If it is the backwards condition, it's the opposite value
-toSumm$betterIfOrderMatters[toSumm$condName=="Backwards"] <- ! toSumm$betterIfOrderMatters[toSumm$condName=="Backwards"]
-#verify I did this correctly
-table(toSumm$betterIfOrderMatters,toSumm$target,toSumm$rightFirst,toSumm$condName, dnn=c("better","target","rightFirst","condName"))
-#Confirmed, assuming that target 1 means left side when canonical and right side when backwards
-toSumm$betterIfOrderMatters<- as.numeric(toSumm$betterIfOrderMatters)
-bb <- toSumm %>%
-      group_by(betterIfOrderMatters,participantID) %>%
-      summarise_each(funs(mean)) 
-bb$participantID<-NULL
-cc <- bb %>%
-      group_by(betterIfOrderMatters) %>%
-      summarise_each(funs(mean,se=sd(.)/sqrt(n()))) 
-cc  #That looks good, close to zero diff between the two groups
-
-#Visualise report order effect
-g=ggplot(ss, aes(x=target,color=rightFirst,y=correct))  
-g<-g+facet_grid(condName~.)
-g<-g+ stat_summary(fun.y=mean,geom="point") # geom_point()
-g<-g + stat_summary(fun.data = mean_se, geom = "errorbar", width=.3)
-g<-g+ theme_bw()
-g
-
-ss$participantID<-NULL #collapse across participants
-tt <- ss %>%  
-  group_by(condName,target,rightFirst) %>%
-  summarise_each(funs(mean,se=sd(.)/sqrt(n())))
-tt  
-
-g=ggplot(tt, aes(x=rightFirst,color=target,y=correct_mean))  
-g<-g+facet_grid(condName~.)
-g<-g+geom_point()
-g
+#spreaded <- xx %>% select(-SPEmsec) %>% spread(rightFirst, correct) 
+#spreaded
+#t.test(spreaded$`FALSE`, spreaded$`TRUE`, alternative = "two.sided", var.equal = TRUE)  #perform the Student's t-test
 
 
 #ALSO ANALYSE WHETHER THERE ARE MORE SPATIAL SWAPS IN THE BACKWARDS CONDITION
