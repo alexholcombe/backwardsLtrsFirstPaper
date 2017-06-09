@@ -142,7 +142,6 @@ print(plots[1])
 ####################
 #Examine effect of response order RESPONSE ORDER
 
-
 Elong$thisQueriedFirst  <- TRUE
 
 Elong<- Elong %>% 
@@ -153,45 +152,56 @@ Elong<- Elong %>%
          thisQueriedFirst = replace(thisQueriedFirst, condName=="Upwards"  &  target==(oneQueriedFirst+1), FALSE),
          thisQueriedFirst = replace(thisQueriedFirst, condName=="Upwards"  &  target!=(oneQueriedFirst+1), TRUE),
          thisQueriedFirst = replace(thisQueriedFirst, condName=="Inverted"  &  target==(oneQueriedFirst+1), FALSE),
-         thisQueriedFirst = replace(thisQueriedFirst, condName=="Inverted"  &  target!==(oneQueriedFirst+1), TRUE),
+         thisQueriedFirst = replace(thisQueriedFirst, condName=="Inverted"  &  target!=(oneQueriedFirst+1), TRUE),
          thisQueriedFirst = replace(thisQueriedFirst, condName=="Downwards"  &  target==(oneQueriedFirst+1), TRUE),
          thisQueriedFirst = replace(thisQueriedFirst, condName=="Downwards"  &  target!=(oneQueriedFirst+1), FALSE))
 
 table(Elong$condName, Elong$thisQueriedFirst, Elong$exp)
 
-toSumm<- Elong[,c("exp","participantID","condName","target","thisQueriedFirst","SPE","correct")]
+toSumm<- Elong[,c("exp","participantID","condName","target","thisQueriedFirst","oneQueriedFirst","SPE","correct")]
 toSumm$SPEmsec <- toSumm$SPE*(1000/Elong$itemRate)
-
+toSumm$correct<- as.numeric(toSumm$correct)
 #There is a zero-order prediction that performance is better for side queried first. Forget second one more often because reported later.
                             #rightFirst+1 == target  means target is 2 and rightFirst, meaning that it works for canonical condition
-toSumm$queriedFirst <- as.numeric(toSumm$rightFirst)+1 == toSumm$target
-# Target1 is actually right target in backwards condition. (checking with Lizzy to be sure)
-# So, need to flip backwards condition.
-toSumm$queriedFirst[ toSumm$condName=="Backwards"] <- ! toSumm$queriedFirst[ toSumm$condName=="Backwards"]
-#Experiment 2
-toSumm$queriedFirst <- as.numeric(toSumm$rightFirst)+1 == toSumm$target
-# Target1 is actually right target in backwards condition. (checking with Lizzy to be sure)
-# So, need to flip backwards condition.
-toSumm$queriedFirst[ toSumm$condName=="Backwards"] <- ! toSumm$queriedFirst[ toSumm$condName=="Backwards"]
-
-
-
-
-
+xx <- toSumm %>% group_by(exp,thisQueriedFirst,participantID) %>%  summarise_each(funs(mean)) %>% 
+  select(participantID, exp, thisQueriedFirst, SPEmsec, correct)
+yy<- xx %>% group_by(exp,thisQueriedFirst) %>% summarise_each(funs(mean,se=sd(.)/sqrt(n()))) 
+yy %>% select(-participantID_mean,-participantID_se)
 
 #Spatial memory coding prediction. People encode the two targets spatially and prefer to read out memory left to right
-xx <- toSumm %>% group_by(expNum,queriedFirst,participantID) %>%  summarise_each(funs(mean)) %>% 
-  select(participantID, expNum, queriedFirst, SPEmsec, correct)
-yy<- xx %>% group_by(expNum,queriedFirst) %>% summarise_each(funs(mean,se=sd(.)/sqrt(n()))) 
-yy
+vv <- toSumm %>% group_by(exp,oneQueriedFirst,participantID,condName) %>%  summarise_each(funs(mean)) %>% 
+  select(participantID, condName, exp, oneQueriedFirst, SPEmsec, correct)
+vv<- vv %>% group_by(exp,condName,oneQueriedFirst) %>% summarise_each(funs(mean,se=sd(.)/sqrt(n())))  %>% 
+            select(-participantID_mean,-participantID_se)
+vv #Reporting these values in the manuscript
 
+#Probably should analyse as ANOVA
+#First analyse participants individually, then collapse across participants
 
-#Spatial memory coding prediction. People encode the two targets spatially and prefer to read out memory left to right
-xx <- toSumm %>% group_by(rightFirst,participantID) %>%  summarise_each(funs(mean)) %>% 
-      select(participantID,rightFirst, SPEmsec, correct)
+expNum<-1
+whichFirstANOVA <- ezANOVA(data= toSumm %>% filter(exp==expNum), 
+                        dv=correct, within=.(oneQueriedFirst,condName,target), wid=participantID)
+print(whichFirstANOVA)
+cat("exp=",expNum,"F=", whichFirstANOVA$ANOVAF, " ps=", whichFirstANOVA$ANOVA$p, "\n", sep=",")
+#These ANOVA details now reported on p. of revised manuscript
 
-yy<- xx %>% group_by(rightFirst) %>% summarise_each(funs(mean,se=sd(.)/sqrt(n()))) 
-yy #21.5% and 21.8%
+#Close to significant for E1 is interaction of oneQueriedFirst and target
+ee<- toSumm %>% group_by(exp,oneQueriedFirst,target,participantID) %>%  summarise_each(funs(mean)) %>% 
+  select(participantID, exp, oneQueriedFirst, target, SPEmsec, correct)
+ff<- ee %>% group_by(exp,oneQueriedFirst,target) %>% summarise_each(funs(mean,se=sd(.)/sqrt(n()))) %>%
+              select(-participantID_mean,-participantID_se)
+  
+  filter(exp==1)
+
+#Plot the interaction.
+condName_by_target_plot = ezPlot(
+  data = thisExp, dv = .(SPE)  , wid = .(participantID), within = .(location,condName)
+  , x = .(location)
+  , split = .(condName),
+  print_code = FALSE
+)
+plots[[length(plots)+1]] <- condName_by_target_plot
+
 
 #Do a t-test
 xx
@@ -254,12 +264,6 @@ g=ggplot(tt, aes(x=rightFirst,color=target,y=correct_mean))
 g<-g+facet_grid(condName~.)
 g<-g+geom_point()
 g
-
-#Probably should analyse as ANOVA
-#First analyse participants individually, then collapse across participants
-ss <- toSumm %>%
-      group_by(condName,target,rightFirst,participantID) %>%
-      summarise_each(funs(mean))
 
 
 #ALSO ANALYSE WHETHER THERE ARE MORE SPATIAL SWAPS IN THE BACKWARDS CONDITION
