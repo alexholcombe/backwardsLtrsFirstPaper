@@ -179,28 +179,32 @@ vv #Reporting these values in the manuscript
 #First analyse participants individually, then collapse across participants
 
 expNum<-1
+whichFirstANOVAe1 <- ezANOVA(data= toSumm %>% filter(exp==expNum), 
+                        dv=correct, within=.(thisQueriedFirst,condName,target), wid=participantID)
+print(whichFirstANOVAe1)
+#These ANOVA details now reported on p.17 of revised manuscript
+
+expNum<-2
 whichFirstANOVA <- ezANOVA(data= toSumm %>% filter(exp==expNum), 
-                        dv=correct, within=.(oneQueriedFirst,condName,target), wid=participantID)
+                           dv=correct, within=.(thisQueriedFirst,condName,target), wid=participantID)
 print(whichFirstANOVA)
-cat("exp=",expNum,"F=", whichFirstANOVA$ANOVAF, " ps=", whichFirstANOVA$ANOVA$p, "\n", sep=",")
-#These ANOVA details now reported on p. of revised manuscript
+#These ANOVA details now reported on p.23 of revised manuscript
 
 #Close to significant for E1 is interaction of oneQueriedFirst and target
 ee<- toSumm %>% group_by(exp,oneQueriedFirst,target,participantID) %>%  summarise_each(funs(mean)) %>% 
-  select(participantID, exp, oneQueriedFirst, target, SPEmsec, correct)
+  select(participantID, exp, oneQueriedFirst, target, correct, SPEmsec )
 ff<- ee %>% group_by(exp,oneQueriedFirst,target) %>% summarise_each(funs(mean,se=sd(.)/sqrt(n()))) %>%
               select(-participantID_mean,-participantID_se)
-  
-  filter(exp==1)
+ff #very little going on
 
 #Plot the interaction.
-condName_by_target_plot = ezPlot(
-  data = thisExp, dv = .(SPE)  , wid = .(participantID), within = .(location,condName)
-  , x = .(location)
-  , split = .(condName),
+thisQueriedFirst_by_target_plot = ezPlot(
+  data = toSumm %>% filter(exp==1), dv = .(correct)  , wid = .(participantID), within = .(thisQueriedFirst,target)
+  , x = .(target)
+  , split = .(thisQueriedFirst),
   print_code = FALSE
 )
-plots[[length(plots)+1]] <- condName_by_target_plot
+print(thisQueriedFirst_by_target_plot) #Not much going on
 
 
 #Do a t-test
