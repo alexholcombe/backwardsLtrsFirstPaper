@@ -17,6 +17,9 @@ path <- file.path(directoryOfRawData)
 #      Its because the way it is coded is that the streams really are just rotated visually by 0 degrees (i.e. left right), 180 degrees (i.e. ʇɥƃᴉɹ ʇɟǝl ), 90 degrees and 270 degrees.
 #Meaning that target 1 and target 2 and presumably response 1 and response 2 are which you would read first
 
+#Pat: allResponses gives you the code for the letter, and you need to use allLetterOrder to find the serial position.
+#  Whereas allTargets directly gives you the serial position of the target (check: it should be the same on both sides every trial), 
+#   and if you wanted to know what the letters were you’d have to convert back using allLetterOrder.
 col_headings <- c('participantID',
                   'block',
                   'randomSeed',
@@ -69,11 +72,13 @@ for (fileName in list.files(path, pattern="*.mat")) #Loop through and read in ea
     #Add serial position columns for responses
     rowCount <- 1
     for (responses in tempData$response1)
-    {
+    {    #responseLetter is code for letter. Use allLetterOrder to determine serial position
       tempData$response1[rowCount] <- match(tempData$responseLetter1[rowCount],singleSubjectData$allLetterOrder[rowCount,1,])
       tempData$response2[rowCount] <- match(tempData$responseLetter2[rowCount],singleSubjectData$allLetterOrder[rowCount,2,])
       #response position relative to wrong stream, to look for swaps
+      #Determine serial position of letter of response 1 in stream 2
       tempData$resp1otherStream[rowCount] <- match(tempData$responseLetter1[rowCount],singleSubjectData$allLetterOrder[rowCount,2,])
+      #Determine serial position of letter of response 1 in stream 2
       tempData$resp2otherStream[rowCount] <- match(tempData$responseLetter2[rowCount],singleSubjectData$allLetterOrder[rowCount,1,])
       rowCount <- rowCount + 1
     }
@@ -92,3 +97,11 @@ E1$oneQueriedFirst <- E1$RT1 > E1$RT2
 #                            "analysisInR_postLizzy/loadRawData/")
 saveDataFramesPath<-"loadRawData/"
 write.csv(E1,paste0(saveDataFramesPath, "E1_BwdsLtrs_MirrRev_RawData.csv"),row.names=FALSE)
+
+sanityCheck=FALSE
+if sanityCheck {
+ #sanity check
+ g=ggplot(E1,   aes(x=responseLetter1))  
+ g<-g+facet_grid(condition~.)  +geom_histogram()
+ g
+}

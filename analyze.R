@@ -53,7 +53,7 @@ g
 
 #Change to long format instead of having target 1 and target 2 in different columns
 require(tidyr)  #target will be name of key column, targetSP name of value column
-gathered <- gather(E, target, targetSP,    target1,target2)
+gathered <- gather(E, key=target, value=targetSP,    target1,target2)
 gathered$target[gathered$target=="target1"] <- 1
 gathered$target[gathered$target=="target2"] <- 2
 
@@ -65,6 +65,13 @@ gathered$respSP[ gathered$target == 2  ] <- gathered$response2[ gathered$target 
 gathered$response1<-NULL
 gathered$response2<-NULL
 
+#resp1otherStream, resp2otherStream still in wide format. Fix that.
+gathered$respSPwrongStream <- gathered$resp1otherStream
+gathered$respSPwrongStream[ gathered$target == 2  ] <- gathered$resp2otherStream[ gathered$target == 2 ]
+#Fixed, now can delete response1 and response2
+gathered$resp1otherStream<-NULL
+gathered$resp2otherStream<-NULL
+
 head(gathered)
 Elong<-gathered
 
@@ -72,14 +79,17 @@ Elong$SPE<- Elong$respSP - Elong$targetSP
 Elong$correct <- Elong$SPE==0
 Elong$approxCorr <- abs(Elong$SPE)<3
 
-Elong$SPEother<-
-
+Elong$SPEother<- Elong$respSPwrongStream - Elong$targetSP
+Elong$correctWrongStream <- Elong$SPEother==0
+  
 #sanity check
 g=ggplot(Elong,   aes(x=SPE))  
-g<-g+facet_grid(condName~target)
-g<-g+geom_histogram()
+g<-g+facet_grid(condName~target)  +geom_histogram()
 g
 #looks good
+g=ggplot(Elong,   aes(x=SPEother))  
+g<-g+facet_grid(condName~exp)  +geom_histogram()
+g #looks good except why are there peaks at -3, 3, and -11, 11
 
 require(dplyr)
 # Also create straight up left and right, top bottom, because 1 and 2 correpsond to reading direction rather than mapping direclty on to positions
