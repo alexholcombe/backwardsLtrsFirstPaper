@@ -99,7 +99,7 @@ saveDataFramesPath<-"loadRawData/"
 write.csv(E1,paste0(saveDataFramesPath, "E1_BwdsLtrs_MirrRev_RawData.csv"),row.names=FALSE)
 
 sanityCheck=FALSE
-if sanityCheck {
+if (sanityCheck) {
  #sanity check
  g=ggplot(E1,   aes(x=responseLetter1))  
  g<-g+facet_grid(condition~.)  +geom_histogram()

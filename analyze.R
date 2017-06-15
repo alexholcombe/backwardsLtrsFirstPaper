@@ -77,7 +77,7 @@ Elong<-gathered
 
 Elong$SPE<- Elong$respSP - Elong$targetSP
 Elong$correct <- Elong$SPE==0
-Elong$approxCorr <- abs(Elong$SPE)<3
+Elong$approxCorr <- abs(Elong$SPE)<3 #Absolute value of the serial position error is less than 3
 
 Elong$SPEother<- Elong$respSPwrongStream - Elong$targetSP
 Elong$correctWrongStream <- Elong$SPEother==0
@@ -89,7 +89,7 @@ g
 #looks good
 g=ggplot(Elong,   aes(x=SPEother))  
 g<-g+facet_grid(condName~exp)  +geom_histogram()
-g #looks good except why are there peaks at -3, 3, and -11, 11
+g #Why are there peaks at -3, 3, and -11, 11?
 
 require(dplyr)
 # Also create straight up left and right, top bottom, because 1 and 2 correpsond to reading direction rather than mapping direclty on to positions
