@@ -56,7 +56,7 @@ require(ggplot2)
 #sanity check
 g=ggplot(E,   aes(x=response1-target1))  
 g<-g+facet_grid(condName~exp)
-g<-g+geom_histogram(bins=numPossibleSPEs) + xlim(minSPE,maxSPE)
+g<-g+geom_histogram(bin_width=1) + xlim(minSPE,maxSPE)
 g
 #Looks good
 
@@ -96,19 +96,20 @@ Elong$approxCorr <- abs(Elong$SPE)<3 #Absolute value of the serial position erro
 
 Elong$SPEother<- Elong$respSPwrongStream - Elong$targetSP #targetSP is same for both streams
 Elong$correctWrongStream <- Elong$SPEother==0
-  
+
+require(dplyr)
+
 #sanity check
 g=ggplot(Elong,   aes(x=SPE))  
-g<-g+facet_grid(condName~target)  +geom_histogram(bins=numPossibleSPEs) + xlim(minSPE,maxSPE)
+g<-g+facet_grid(condName~target)  +geom_histogram(bin_width=1) + xlim(minSPE,maxSPE)
 g #looks good
 g=ggplot(Elong,   aes(x=SPEother)) 
-g<-g+facet_grid(condName~target)  +geom_histogram(bins=numPossibleSPEs) + xlim(minSPE,maxSPE)
+g<-g+facet_grid(condName~target)  +geom_histogram(bin_width=1) + xlim(minSPE,maxSPE)
 #add line to show bit that should be flat if pure guessing
 g<-g+geom_segment(aes(x = minAlwaysPossibleSPE, y = 0, xend = maxAlwaysPossibleSPE, yend = 0,
-                   color = "flat")
-g #looks good thank you Chris. Some swaps can be seen.
+                   color = "flat"))
+g #looks good thank you Chris. Some swaps can be seen. More for target 2, even for canonical condition
                   
-require(dplyr)
 # Also create straight up left and right, top bottom, because 1 and 2 correpsond to reading direction rather than mapping direclty on to positions
 Elong$location<-Elong$condName
 #Based on what Lizzy said, target=1 means top in downwards but bottom in upwards.
@@ -286,7 +287,7 @@ E2$correct <- E2$SPE==0
 #sanity check
 g=ggplot(E2,   aes(x=SPE))  
 g<-g+facet_grid(target~condName)
-g<-g+geom_histogram()
+g<-g+geom_histogram(bin_width=1)
 g
 #looks good
 
