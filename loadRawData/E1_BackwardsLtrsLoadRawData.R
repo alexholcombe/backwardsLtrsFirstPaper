@@ -78,7 +78,7 @@ for (fileName in list.files(path, pattern="*.mat")) #Loop through and read in ea
       #response position relative to wrong stream, to look for swaps
       #Determine serial position of letter of response 1 in stream 2
       tempData$resp1otherStream[rowCount] <- match(tempData$responseLetter1[rowCount],singleSubjectData$allLetterOrder[rowCount,2,])
-      #Determine serial position of letter of response 1 in stream 2
+      #Determine serial position of letter of response 2 in stream 1
       tempData$resp2otherStream[rowCount] <- match(tempData$responseLetter2[rowCount],singleSubjectData$allLetterOrder[rowCount,1,])
       rowCount <- rowCount + 1
     }

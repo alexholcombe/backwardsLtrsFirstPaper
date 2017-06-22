@@ -1,5 +1,6 @@
 
 #current directory should be analysisInR_postLizzy
+setwd("~/Documents/attention_tempresltn/temp res of attn, binding/backwardsLetters/dataAnalysis")
 #E1 is data.frame created by below file
 #if (!exists('E1')) {
   source('loadRawData/E1_BackwardsLtrsLoadRawData.R')
@@ -24,6 +25,19 @@ E$endTime<-NULL #Don't know what this is
 E$letterSeparation<-NULL
 E$letterEccentricity<-NULL
 
+#Work out the minimum and maximum SPE so can set histogram limits and num bins accordingly.
+#not guaranteed to give right answer if small amount of data so not all possible values observed
+minMaxTargetPos<-c( min(E$target1),max(E$target1) )
+minRespPos<- min (1, min(E$response1) ) #AFAIK all my experiments use 1 as first serial position but just in case
+minMaxRespPos<-c( minRespPos, max(E$response1) )
+maxSPE<- minMaxTargetPos[2] - minMaxRespPos[1]
+minSPE<- minMaxTargetPos[1] - minMaxRespPos[2]
+numPossibleSPEs<- maxSPE-minSPE+1 #have to add 1 to count SPE=0
+#Calculate the range that the guessing distribution is still ramping up. Try to add some color for it
+#Certain values can occur for any targetPos
+maxAlwaysPossibleSPE<- minMaxRespPos[2] - minMaxTargetPos[2] 
+minAlwaysPossibleSPE<- minMaxRespPos[1] - minMaxTargetPos[1]
+
 #Don't forget that E1 and E2 already excludes participants that were excluded at mixture modeling stage due to their
 #efficacy being indistinguishable from zero.
 
@@ -42,7 +56,7 @@ require(ggplot2)
 #sanity check
 g=ggplot(E,   aes(x=response1-target1))  
 g<-g+facet_grid(condName~exp)
-g<-g+geom_histogram()
+g<-g+geom_histogram(bins=numPossibleSPEs) + xlim(minSPE,maxSPE)
 g
 #Looks good
 
@@ -66,7 +80,8 @@ gathered$response1<-NULL
 gathered$response2<-NULL
 
 #resp1otherStream, resp2otherStream still in wide format. Fix that.
-gathered$respSPwrongStream <- gathered$resp1otherStream
+gathered$respSPwrongStream <- gathered$resp1otherStream #For target=1, resp1otherStream is the SPE in stream 2
+#In the case of target=2, the response is response2 and resp2otherStream is SPE in stream 1
 gathered$respSPwrongStream[ gathered$target == 2  ] <- gathered$resp2otherStream[ gathered$target == 2 ]
 #Fixed, now can delete response1 and response2
 gathered$resp1otherStream<-NULL
@@ -79,18 +94,20 @@ Elong$SPE<- Elong$respSP - Elong$targetSP
 Elong$correct <- Elong$SPE==0
 Elong$approxCorr <- abs(Elong$SPE)<3 #Absolute value of the serial position error is less than 3
 
-Elong$SPEother<- Elong$respSPwrongStream - Elong$targetSP
+Elong$SPEother<- Elong$respSPwrongStream - Elong$targetSP #targetSP is same for both streams
 Elong$correctWrongStream <- Elong$SPEother==0
   
 #sanity check
 g=ggplot(Elong,   aes(x=SPE))  
-g<-g+facet_grid(condName~target)  +geom_histogram()
-g
-#looks good
-g=ggplot(Elong,   aes(x=SPEother))  
-g<-g+facet_grid(condName~exp)  +geom_histogram()
-g #Why are there peaks at -3, 3, and -11, 11?
-
+g<-g+facet_grid(condName~target)  +geom_histogram(bins=numPossibleSPEs) + xlim(minSPE,maxSPE)
+g #looks good
+g=ggplot(Elong,   aes(x=SPEother)) 
+g<-g+facet_grid(condName~target)  +geom_histogram(bins=numPossibleSPEs) + xlim(minSPE,maxSPE)
+#add line to show bit that should be flat if pure guessing
+g<-g+geom_segment(aes(x = minAlwaysPossibleSPE, y = 0, xend = maxAlwaysPossibleSPE, yend = 0,
+                   color = "flat")
+g #looks good thank you Chris. Some swaps can be seen.
+                  
 require(dplyr)
 # Also create straight up left and right, top bottom, because 1 and 2 correpsond to reading direction rather than mapping direclty on to positions
 Elong$location<-Elong$condName
